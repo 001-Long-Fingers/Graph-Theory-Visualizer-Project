@@ -3,6 +3,9 @@ Interactive graph visualization tool built using Python, NetworkX, Tkinter, and 
 
 # Interactive Graph Theory Visualizer
 
+<img width="956" height="577" alt="image" src="https://github.com/user-attachments/assets/8943cf2c-1284-4f5f-bf4f-81c8535a21d1" />
+
+
 An interactive graph visualization tool built using Python, Tkinter, NetworkX, and Matplotlib.
 
 This project allows users to input custom vertices and edges and instantly visualize the corresponding graph structure through a graphical interface.
