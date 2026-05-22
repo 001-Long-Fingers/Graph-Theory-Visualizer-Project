@@ -3,7 +3,7 @@ Interactive graph visualization tool built using Python, NetworkX, Tkinter, and 
 
 # Interactive Graph Theory Visualizer
 
-<img width="956" height="577" alt="image" src="https://github.com/user-attachments/assets/8943cf2c-1284-4f5f-bf4f-81c8535a21d1" />
+<img width="783" height="750" alt="ReadMe" src="https://github.com/user-attachments/assets/5d2ef1fa-45f4-4704-9eed-557229ba3eca" />
 
 
 An interactive graph visualization tool built using Python, Tkinter, NetworkX, and Matplotlib.
