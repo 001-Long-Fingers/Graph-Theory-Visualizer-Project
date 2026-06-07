@@ -48,6 +48,9 @@ This project allows users to input custom vertices and edges and instantly visua
 
 ---
 
+
+<img width="566" height="525" alt="Example" src="https://github.com/user-attachments/assets/68ee9dd7-a36a-46b0-99ab-214e13452718" />
+
 ## How to Run
 
 ### 1. Clone the repository
