@@ -40,11 +40,13 @@ Dijkstra's Algorithm computes the shortest path from a source vertex to all othe
 
 ---
 
-# Work In Progress
-
 ## Breadth-First Search (BFS)
 
-**Status:** Planned
+<img width="1920" height="1080" alt="BFS" src="https://github.com/user-attachments/assets/cdce36dc-2220-4a37-8e76-a1e649ee4629" />
+
+
+
+**Status:** Implemented
 
 Breadth-First Search explores a graph level by level, visiting all vertices at distance 1 before distance 2, and so on.
 
@@ -68,6 +70,8 @@ Breadth-First Search explores a graph level by level, visiting all vertices at d
 * Connectivity testing
 
 ---
+
+# Work In Progress
 
 ## Bellman-Ford Algorithm
 
