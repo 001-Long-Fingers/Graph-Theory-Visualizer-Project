@@ -10,7 +10,8 @@ The goal of these implementations is not only to compute graph properties but al
 
 ## Dijkstra's Shortest Path Algorithm
 
-<img width="1920" height="1080" alt="Traversal" src="https://github.com/user-attachments/assets/2dfefe6c-f5a6-4d7a-b7e7-f8b7a5482599" />
+<img width="1920" height="1080" alt="Traversal" src="https://github.com/user-attachments/assets/bc3d8730-03ed-42a2-a78b-03dd067529ca" />
+
 
 
 **Status:** Implemented
@@ -42,7 +43,8 @@ Dijkstra's Algorithm computes the shortest path from a source vertex to all othe
 
 ## Breadth-First Search (BFS)
 
-<img width="1920" height="1080" alt="BFS" src="https://github.com/user-attachments/assets/cdce36dc-2220-4a37-8e76-a1e649ee4629" />
+<img width="1308" height="841" alt="BFSvis" src="https://github.com/user-attachments/assets/c464d9f0-9e9b-4202-a464-ded03629686f" />
+
 
 
 
