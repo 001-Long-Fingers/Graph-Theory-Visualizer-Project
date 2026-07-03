@@ -14,7 +14,7 @@ def floyd_warshall(matrix: list) -> None:
                matrix[i][j] = INF  if no direct edge exists
 
     Nodes are labelled 1..V for display.
-
+    
     Example (4 nodes):
         INF = float('inf')
         matrix = [
