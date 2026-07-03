@@ -1,11 +1,9 @@
 INF = float('inf')
 
-
 def floyd_warshall(matrix: list) -> None:
     """
     Run Floyd-Warshall on a VxV adjacency matrix and print
     the distance matrix after each k pass, then a final path table.
-
     Parameters
     ----------
     matrix : VxV list of lists where
