@@ -15,7 +15,6 @@ def bellman_ford_table(adj: dict, source: int) -> None:
              when building adj.
     source : starting node (must be a key in adj)
     """
-
     if source not in adj:
         print(f"Error: node {source} is not in the adjacency list.")
         return
@@ -154,7 +153,6 @@ def bellman_ford_table(adj: dict, source: int) -> None:
 
 
 # Example
-
 if __name__ == "__main__":
     # Directed, weighted graph with one negative edge (but no negative cycle)
     adj = {
