@@ -228,4 +228,18 @@ The matrix is printed after each value of k. The `◄` marks the current pivot r
 A **negative cycle** is detected by checking the diagonal after the run — if any `dist[i][i] < 0`, a negative cycle exists through node i and shortest paths involving it are undefined (can be made arbitrarily small by looping the cycle).
 
 ---
+## 6. Algorithm Comparison
+
+| | Dijkstra (weighted) | Bellman-Ford | Floyd-Warshall |
+|---|---|---|---|
+| **Graph type** | Directed or undirected | Directed or undirected | Directed |
+| **Weights** | Non-negative only | Any (incl. negative) | Any (incl. negative) |
+| **Problem solved** | Single-source | Single-source | All-pairs |
+| **Time complexity** | O((V+E) log V) | O(VE) | O(V³) |
+| **Space complexity** | O(V+E) | O(V+E) | O(V²) |
+| **Input format** | `adj = {u: [(v,w), ...]}` | `adj = {u: [(v,w), ...]}` | V×V matrix |
+| **Negative cycle detection** | No | Yes (V-th pass) | Yes (diagonal check) |
+| **Gives paths to** | All nodes from one source | All nodes from one source | All pairs simultaneously |
+
+The choice between them comes down to three questions: do you have negative weights (rules out Dijkstra), do you need all-pairs results (points to Floyd-Warshall), and how large is the graph (O(V³) becomes impractical for large sparse graphs where repeated Dijkstra at O(V(V+E)logV) may be cheaper).
 
