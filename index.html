@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Graph Theory Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --bg:            #08090a;
+  --surface:       #101316;
+  --surface-2:     #14181c;
+  --border:        #20262b;
+  --border-hi:     #34404a;
+  --text:          #e7e6e2;
+  --text-dim:      #8a9099;
+  --text-faint:    #4d545c;
+
+  --node:          #4fc3f7;   /* graph node / primary accent   */
+  --node-dim:      #1f6f8c;
+  --amber:         #ffb238;   /* implemented feature accent    */
+  --red:           #ff5c5c;   /* planned / future marker       */
+
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-weight:300;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background:repeating-linear-gradient(
+    0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px,
+    transparent 1px, transparent 3px
+  );
+  mix-blend-mode:overlay;
+}
+
+::selection{ background:var(--node-dim); color:#fff; }
+a{ color:inherit; text-decoration:none; }
+
+.wrap{ max-width:1080px; margin:0 auto; padding:0 32px; }
+@media (max-width:640px){ .wrap{ padding:0 20px; } }
+
+/* ============================================================
+   REVEAL-ON-SCROLL
+   ============================================================ */
+.reveal{
+  opacity:0; transform:translateY(28px);
+  transition:opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
+}
+.reveal.visible{ opacity:1; transform:translateY(0); }
+@media (prefers-reduced-motion: reduce){
+  .reveal{ opacity:1; transform:none; transition:none; }
+  *{ animation:none !important; }
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  backdrop-filter:blur(10px);
+  background:rgba(8,9,10,0.72);
+  border-bottom:1px solid var(--border);
+}
+nav .wrap{ display:flex; align-items:center; justify-content:space-between; height:56px; }
+.nav-brand{
+  font-family:var(--mono); font-size:13px; font-weight:600;
+  letter-spacing:0.08em; color:var(--text); display:flex; align-items:center; gap:8px;
+}
+.nav-brand .dot{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--node); box-shadow:0 0 8px var(--node);
+  animation:blink 2.4s ease-in-out infinite;
+}
+@keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+.nav-links{ display:flex; gap:26px; font-family:var(--mono); font-size:11.5px; }
+.nav-links a{ color:var(--text-dim); letter-spacing:0.04em; transition:color .2s; }
+.nav-links a:hover{ color:var(--node); }
+@media (max-width:760px){ .nav-links{ display:none; } }
+
+/* ============================================================
+   HERO — signature element: a live force-directed graph
+   simulation (nodes + edges, spring/repulsion physics)
+   ============================================================ */
+.hero{
+  position:relative; min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:120px 24px 80px; overflow:hidden;
+  border-bottom:1px solid var(--border);
+}
+#graph-canvas{ position:absolute; inset:0; width:100%; height:100%; opacity:0.6; }
+.hero-content{ position:relative; z-index:2; }
+
+.eyebrow{
+  font-family:var(--mono); font-size:12px; letter-spacing:0.25em;
+  color:var(--node); text-transform:uppercase; margin-bottom:22px;
+  display:inline-flex; align-items:center; gap:10px;
+}
+.eyebrow::before, .eyebrow::after{ content:""; width:22px; height:1px; background:var(--node-dim); }
+
+.hero h1{
+  font-family:var(--mono); font-weight:800;
+  font-size:clamp(28px, 5vw, 54px); letter-spacing:-0.01em; line-height:1.1;
+  color:var(--text); text-shadow:0 0 40px rgba(79,195,247,0.14);
+}
+.hero h1 .accent{ color:var(--node); }
+
+.hero p.sub{ margin:26px auto 0; max-width:560px; font-size:16px; color:var(--text-dim); font-weight:300; }
+
+.hero-meta{ margin-top:44px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.badge{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:0.05em;
+  border:1px solid var(--border-hi); padding:6px 12px; border-radius:3px;
+  color:var(--text-dim); background:var(--surface);
+}
+.badge.py{ color:#ffd166; border-color:#ffd16633; }
+.badge.tk{ color:#a5d6a7; border-color:#a5d6a733; }
+.badge.nx{ color:#4fc3f7; border-color:#4fc3f733; }
+.badge.mpl{ color:#ff8a65; border-color:#ff8a6533; }
+
+.scroll-cue{
+  position:absolute; bottom:32px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:10px; letter-spacing:0.2em;
+  color:var(--text-faint); text-transform:uppercase;
+  display:flex; flex-direction:column; align-items:center; gap:8px; z-index:2;
+}
+.scroll-cue .line{
+  width:1px; height:28px; background:linear-gradient(var(--node-dim), transparent);
+  animation:scrollpulse 1.8s ease-in-out infinite;
+}
+@keyframes scrollpulse{ 0%{opacity:.2;} 50%{opacity:1;} 100%{opacity:.2;} }
+
+/* ============================================================
+   SECTION SCAFFOLDING
+   ============================================================ */
+section{ padding:96px 0; border-bottom:1px solid var(--border); }
+section:last-of-type{ border-bottom:none; }
+.section-head{ margin-bottom:48px; max-width:640px; }
+.section-num{
+  font-family:var(--mono); font-size:12px; color:var(--node);
+  letter-spacing:0.12em; margin-bottom:10px; display:block;
+}
+.section-head h2{
+  font-family:var(--mono); font-size:clamp(22px, 3vw, 30px);
+  font-weight:700; color:var(--text); letter-spacing:-0.01em;
+}
+.section-head p{ margin-top:14px; color:var(--text-dim); font-size:15px; max-width:520px; }
+
+/* ============================================================
+   OVERVIEW + FIGURE
+   ============================================================ */
+.overview-block{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:48px; align-items:center; }
+@media (max-width:780px){ .overview-block{ grid-template-columns:1fr; } }
+.overview-block p{ color:var(--text-dim); font-size:15px; margin-bottom:16px; }
+
+.media-frame{
+  position:relative; border:1px solid var(--border-hi); background:var(--surface);
+  border-radius:4px; overflow:hidden; box-shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+  transition:transform .4s cubic-bezier(.16,1,.3,1), border-color .4s;
+}
+.media-frame:hover{ transform:translateY(-6px); border-color:var(--node-dim); }
+.media-frame img{ width:100%; display:block; filter:saturate(0.92) contrast(1.03); }
+.media-frame .frame-label{
+  position:absolute; top:10px; left:10px;
+  font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em;
+  background:rgba(8,9,10,0.75); color:var(--node);
+  padding:4px 8px; border:1px solid var(--node-dim); border-radius:2px;
+}
+
+/* ============================================================
+   FEATURES
+   ============================================================ */
+.feature-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:1px;
+  background:var(--border); border:1px solid var(--border);
+}
+@media (max-width:760px){ .feature-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:480px){ .feature-grid{ grid-template-columns:1fr; } }
+.feature-cell{ background:var(--bg); padding:26px 22px; transition:background .25s; }
+.feature-cell:hover{ background:var(--surface); }
+.feature-cell .idx{
+  font-family:var(--mono); font-size:11px; color:var(--text-faint);
+  letter-spacing:0.1em; margin-bottom:10px; display:block;
+}
+.feature-cell .name{ font-size:14.5px; color:var(--text); }
+.feature-cell .name::before{ content:"→ "; color:var(--amber); }
+
+/* ============================================================
+   EXAMPLE INPUT
+   ============================================================ */
+.example-grid{ display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:start; }
+@media (max-width:780px){ .example-grid{ grid-template-columns:1fr; } }
+
+.code-block{
+  background:var(--surface-2); border:1px solid var(--border-hi); border-radius:6px;
+  overflow:hidden; margin-bottom:18px;
+}
+.code-block .cb-head{
+  padding:10px 16px; border-bottom:1px solid var(--border);
+  font-family:var(--mono); font-size:11px; letter-spacing:0.08em;
+  color:var(--node); background:var(--surface); text-transform:uppercase;
+}
+.code-block pre{
+  padding:18px 20px; font-family:var(--mono); font-size:14px; color:var(--text);
+  overflow-x:auto;
+}
+
+/* ============================================================
+   TECH STACK
+   ============================================================ */
+.stack-row{ display:flex; gap:14px; flex-wrap:wrap; }
+.stack-chip{
+  display:flex; align-items:center; gap:10px;
+  border:1px solid var(--border-hi); background:var(--surface);
+  padding:12px 18px; border-radius:4px;
+  font-family:var(--mono); font-size:13px; color:var(--text);
+  transition:transform .25s, border-color .25s;
+}
+.stack-chip:hover{ transform:translateY(-3px); border-color:var(--node-dim); }
+.stack-chip .sw{ width:8px; height:8px; border-radius:50%; }
+
+/* ============================================================
+   HOW TO RUN
+   ============================================================ */
+.run-steps{ display:flex; flex-direction:column; gap:1px; background:var(--border); border:1px solid var(--border); }
+.run-step{ background:var(--bg); padding:24px 26px; display:grid; grid-template-columns:44px 1fr; gap:18px; align-items:start; transition:background .25s; }
+.run-step:hover{ background:var(--surface); }
+.run-step .num{
+  font-family:var(--mono); font-size:20px; font-weight:800; color:var(--node-dim);
+}
+.run-step h4{ font-family:var(--mono); font-size:14px; color:var(--text); margin-bottom:10px; }
+.run-step pre{
+  font-family:var(--mono); font-size:13px; color:var(--text-dim);
+  background:var(--surface-2); border:1px solid var(--border);
+  padding:12px 14px; border-radius:4px; overflow-x:auto;
+}
+
+/* ============================================================
+   PROJECT STRUCTURE — terminal block
+   ============================================================ */
+.terminal{
+  background:var(--surface-2); border:1px solid var(--border-hi); border-radius:6px;
+  overflow:hidden; box-shadow:0 20px 60px -30px rgba(0,0,0,0.8);
+}
+.terminal-bar{
+  display:flex; align-items:center; gap:8px; padding:12px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+}
+.terminal-bar .tdot{ width:10px; height:10px; border-radius:50%; }
+.terminal-bar .t1{ background:#ff5f57; } .terminal-bar .t2{ background:#febc2e; } .terminal-bar .t3{ background:#28c840; }
+.terminal-bar span.path{ margin-left:10px; font-family:var(--mono); font-size:11.5px; color:var(--text-faint); }
+.terminal pre{
+  padding:22px 24px; font-family:var(--mono); font-size:13px; line-height:1.75;
+  color:var(--text-dim); overflow-x:auto;
+}
+.terminal pre .folder{ color:var(--node); }
+.terminal pre .comment{ color:var(--text-faint); }
+
+/* ============================================================
+   FUTURE IMPROVEMENTS
+   ============================================================ */
+.planned-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:1px;
+  background:var(--border); border:1px solid var(--border);
+}
+@media (max-width:760px){ .planned-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:480px){ .planned-grid{ grid-template-columns:1fr; } }
+.planned-cell{ background:var(--bg); padding:26px 22px; transition:background .25s; }
+.planned-cell:hover{ background:var(--surface); }
+.planned-cell:hover .pulse-dot{ animation-play-state:running; }
+.pulse-node{ width:28px; height:28px; margin-bottom:14px; position:relative; }
+.pulse-ring{ position:absolute; inset:0; border:1px solid var(--border-hi); border-radius:50%; }
+.pulse-dot{
+  position:absolute; top:50%; left:50%; width:6px; height:6px; margin:-3px;
+  background:var(--red); border-radius:50%; box-shadow:0 0 8px var(--red);
+  animation:pulse 1.8s ease-in-out infinite; animation-play-state:paused;
+}
+@keyframes pulse{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(2.2); opacity:0; } }
+.planned-cell h4{ font-family:var(--mono); font-size:14.5px; color:var(--text); margin-bottom:8px; }
+.planned-cell .tag-planned{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; color:var(--red);
+  border:1px solid #ff5c5c33; padding:3px 8px; border-radius:2px;
+}
+
+/* ============================================================
+   MOTIVATION / CLOSING
+   ============================================================ */
+.closing{ text-align:center; padding:110px 0; border-bottom:none; }
+.closing h2{
+  font-family:var(--mono); font-size:clamp(22px,3.4vw,32px); color:var(--text);
+  max-width:660px; margin:0 auto 20px; line-height:1.45;
+}
+.closing h2 .accent{ color:var(--node); }
+.closing p{ color:var(--text-dim); max-width:500px; margin:0 auto; font-size:14.5px; }
+
+footer{ padding:36px 0 50px; text-align:center; }
+footer p{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); letter-spacing:0.04em; }
+footer .dot{ color:var(--node); }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-brand"><span class="dot"></span> GRAPH&nbsp;VISUALIZER</div>
+    <div class="nav-links">
+      <a href="#overview">overview</a>
+      <a href="#features">features</a>
+      <a href="#example">example</a>
+      <a href="#run">run</a>
+      <a href="#future">future</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================
+     HERO — live force-directed graph (nodes + spring/repulsion physics)
+     ============================================================ -->
+<header class="hero">
+  <canvas id="graph-canvas"></canvas>
+  <div class="hero-content">
+    <span class="eyebrow">G = (V, E)</span>
+    <h1>INTERACTIVE <span class="accent">GRAPH THEORY</span><br>VISUALIZER</h1>
+    <p class="sub">
+      Input custom vertices and edges and instantly see the resulting
+      graph structure — rendered live through NetworkX, Matplotlib, and Tkinter.
+    </p>
+    <div class="hero-meta">
+      <span class="badge py">PYTHON</span>
+      <span class="badge tk">TKINTER</span>
+      <span class="badge nx">NETWORKX</span>
+      <span class="badge mpl">MATPLOTLIB</span>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>scroll</span><span class="line"></span></div>
+</header>
+
+<!-- ============================================================
+     OVERVIEW
+     ============================================================ -->
+<section id="overview">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 01 ]</span>
+      <h2>Overview</h2>
+    </div>
+    <div class="overview-block reveal">
+      <div>
+        <p>An interactive graph visualization tool built using Python, Tkinter, NetworkX, and Matplotlib.</p>
+        <p>This project allows users to input custom vertices and edges and instantly visualize the corresponding graph structure through a graphical interface.</p>
+      </div>
+      <div class="media-frame">
+        <span class="frame-label">FIG. 01 — INTERFACE</span>
+        <!-- IMAGE PATH: replace the src below to change the main overview/readme screenshot -->
+        <img src="https://github.com/user-attachments/assets/5d2ef1fa-45f4-4704-9eed-557229ba3eca" alt="Graph theory visualizer interface">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FEATURES
+     ============================================================ -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 02 ]</span>
+      <h2>Features</h2>
+    </div>
+    <div class="feature-grid reveal">
+      <div class="feature-cell"><span class="idx">01</span><span class="name">Interactive graph visualization</span></div>
+      <div class="feature-cell"><span class="idx">02</span><span class="name">Custom vertex and edge input</span></div>
+      <div class="feature-cell"><span class="idx">03</span><span class="name">Automatic adjacency list construction</span></div>
+      <div class="feature-cell"><span class="idx">04</span><span class="name">Graph rendering using NetworkX</span></div>
+      <div class="feature-cell"><span class="idx">05</span><span class="name">GUI built with Tkinter</span></div>
+      <div class="feature-cell"><span class="idx">06</span><span class="name">Dynamic graph plotting with Matplotlib</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     EXAMPLE INPUT
+     ============================================================ -->
+<section id="example">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 03 ]</span>
+      <h2>Example Input</h2>
+      <p>Vertices and edges are entered as plain sets — the visualizer handles the rest.</p>
+    </div>
+    <div class="example-grid reveal">
+      <div>
+        <div class="code-block">
+          <div class="cb-head">Vertices</div>
+          <pre>{1, 2, 3, 4}</pre>
+        </div>
+        <div class="code-block">
+          <div class="cb-head">Edges</div>
+          <pre>{{1,2}, {2,3}, {3,4}, {4,1}, {1,3}}</pre>
+        </div>
+      </div>
+      <div class="media-frame">
+        <span class="frame-label">FIG. 02 — RENDERED OUTPUT</span>
+        <!-- IMAGE PATH: replace the src below to change the example output screenshot -->
+        <img src="https://github.com/user-attachments/assets/68ee9dd7-a36a-46b0-99ab-214e13452718" alt="Example rendered graph output">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TECH STACK
+     ============================================================ -->
+<section id="stack">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 04 ]</span>
+      <h2>Technologies Used</h2>
+    </div>
+    <div class="stack-row reveal">
+      <div class="stack-chip"><span class="sw" style="background:#ffd166"></span>Python</div>
+      <div class="stack-chip"><span class="sw" style="background:#a5d6a7"></span>Tkinter</div>
+      <div class="stack-chip"><span class="sw" style="background:#4fc3f7"></span>NetworkX</div>
+      <div class="stack-chip"><span class="sw" style="background:#ff8a65"></span>Matplotlib</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     HOW TO RUN
+     ============================================================ -->
+<section id="run">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 05 ]</span>
+      <h2>How to Run</h2>
+    </div>
+    <div class="run-steps reveal">
+      <div class="run-step">
+        <span class="num">01</span>
+        <div>
+          <h4>Clone the repository</h4>
+          <pre>git clone &lt;repository-link&gt;
+cd graph-theory-visualizer</pre>
+        </div>
+      </div>
+      <div class="run-step">
+        <span class="num">02</span>
+        <div>
+          <h4>Install dependencies</h4>
+          <pre>pip install -r requirements.txt</pre>
+        </div>
+      </div>
+      <div class="run-step">
+        <span class="num">03</span>
+        <div>
+          <h4>Run the program</h4>
+          <pre>python main.py</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROJECT STRUCTURE
+     ============================================================ -->
+<section id="structure">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 06 ]</span>
+      <h2>Project Structure</h2>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <span class="tdot t1"></span><span class="tdot t2"></span><span class="tdot t3"></span>
+        <span class="path">~/graph-theory-visualizer</span>
+      </div>
+      <pre><span class="folder">graph-theory-visualizer/</span>
+│
+├── main.py               <span class="comment">// entry point</span>
+├── README.md
+├── requirements.txt
+├── <span class="folder">screenshots/</span>
+└── <span class="folder">examples/</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FUTURE IMPROVEMENTS
+     ============================================================ -->
+<section id="future">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="section-num">[ 07 ]</span>
+      <h2>Future Improvements</h2>
+    </div>
+    <div class="planned-grid reveal">
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>BFS Visualization</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>DFS Visualization</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>Shortest Path Algorithms</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>Cycle Detection</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>Graph Coloring Algorithms</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+      <div class="planned-cell">
+        <div class="pulse-node"><div class="pulse-ring"></div><div class="pulse-dot"></div></div>
+        <h4>Weighted Graph Support</h4>
+        <span class="tag-planned">PLANNED</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MOTIVATION
+     ============================================================ -->
+<section class="closing">
+  <div class="wrap">
+    <h2 class="reveal">Inspired by <span class="accent">graph theory</span>, computational mathematics, and interactive visualization.</h2>
+    <p class="reveal">The goal: a fully interactive tool covering virtually every useful aspect of graphs in mathematics and computer science.</p>
+  </div>
+</section>
+
+<footer>
+  <p>built with NetworkX, Tkinter &amp; Matplotlib <span class="dot">·</span> every edge drawn by the graph you gave it</p>
+</footer>
+
+<script>
+/* ---------------------------------------------------------------
+   Scroll-triggered reveal (IntersectionObserver)
+--------------------------------------------------------------- */
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting){
+      entry.target.classList.add('visible');
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+revealEls.forEach(el => io.observe(el));
+
+/* ---------------------------------------------------------------
+   Hero signature element: a live force-directed graph.
+   Nodes repel each other, edges act as springs pulling
+   connected nodes together — the same physics behind
+   NetworkX's spring_layout, run live in the browser.
+--------------------------------------------------------------- */
+(function(){
+  const canvas = document.getElementById('graph-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, dpr;
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = canvas.clientWidth; h = canvas.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // build a random-ish connected-looking graph
+  const N = 22;
+  const nodes = [];
+  for (let i = 0; i < N; i++){
+    nodes.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: 0, vy: 0
+    });
+  }
+  const edges = [];
+  for (let i = 0; i < N; i++){
+    const links = 1 + Math.floor(Math.random() * 2);
+    for (let l = 0; l < links; l++){
+      const j = Math.floor(Math.random() * N);
+      if (j !== i) edges.push([i, j]);
+    }
+  }
+
+  const REPEL = 1800;
+  const SPRING = 0.006;
+  const SPRING_LEN = 130;
+  const DAMPING = 0.9;
+  const CENTER_PULL = 0.0006;
+
+  function step(){
+    // repulsion between all pairs
+    for (let i = 0; i < N; i++){
+      for (let j = i + 1; j < N; j++){
+        const a = nodes[i], b = nodes[j];
+        let dx = a.x - b.x, dy = a.y - b.y;
+        let dist2 = dx*dx + dy*dy + 0.01;
+        let force = REPEL / dist2;
+        let dist = Math.sqrt(dist2);
+        dx /= dist; dy /= dist;
+        a.vx += dx * force * 0.02; a.vy += dy * force * 0.02;
+        b.vx -= dx * force * 0.02; b.vy -= dy * force * 0.02;
+      }
+    }
+    // spring along edges
+    edges.forEach(([i, j]) => {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) + 0.01;
+      const diff = (dist - SPRING_LEN) * SPRING;
+      const fx = (dx / dist) * diff, fy = (dy / dist) * diff;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    });
+    // gentle pull to center + damping + integrate
+    const cx = w / 2, cy = h / 2;
+    nodes.forEach(n => {
+      n.vx += (cx - n.x) * CENTER_PULL;
+      n.vy += (cy - n.y) * CENTER_PULL;
+      n.vx *= DAMPING; n.vy *= DAMPING;
+      n.x += n.vx; n.y += n.vy;
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, w, h);
+    step();
+
+    // edges
+    ctx.lineWidth = 1;
+    edges.forEach(([i, j]) => {
+      const a = nodes[i], b = nodes[j];
+      ctx.strokeStyle = 'rgba(79,195,247,0.22)';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    });
+
+    // nodes
+    nodes.forEach(n => {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 3.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(79,195,247,0.85)';
+      ctx.shadowColor = 'rgba(79,195,247,0.6)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    if (!reduceMotion) requestAnimationFrame(draw);
+  }
+
+  draw();
+})();
+</script>
+
+</body>
+</html>
