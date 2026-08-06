@@ -15,7 +15,16 @@ The core idea: parse user text → build a graph → lay it out once → redraw 
 
 ---
 
-## 2. Data Model — `Graph` class
+## 2. Example Screenshot
+
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/dc727291-e507-44c9-924c-a76b00cc5939" />
+
+
+*Replace `screenshot.png` above with an actual capture of the app — e.g. the default graph `{1,2,3,4}` / `{{1,2},{2,3},{3,4},{4,1},{1,3}}` with a highlighted path — placed in the same folder as this file.*
+
+---
+
+## 3. Data Model — `Graph` class
 
 ```python
 class Graph:
@@ -29,11 +38,11 @@ class Graph:
 - `E` is a `set` of `frozenset({u, v})` pairs (using `frozenset` so edges are unordered and hashable/deduplicated automatically).
 - `build_adjacency_list()` builds a dict mapping each vertex to the `set` of its neighbors, by iterating over `E` and adding both directions.
 
-This class is a lightweight internal representation; it's converted into a `networkx.Graph` immediately after being built (see §4).
+This class is a lightweight internal representation; it's converted into a `networkx.Graph` immediately after being built (see §5).
 
 ---
 
-## 3. Parsing Functions
+## 4. Parsing Functions
 
 All parsing is regex-based and tolerant of loose formatting (extra spaces, curly braces, etc.).
 
@@ -50,7 +59,7 @@ Key details:
 
 ---
 
-## 4. Global State & Rendering Pipeline
+## 5. Global State & Rendering Pipeline
 
 ```python
 current_G = None
@@ -89,7 +98,7 @@ If no graph has been drawn yet, `highlight_graph()` shows an info dialog telling
 
 ---
 
-## 5. UI Layout (Tkinter)
+## 6. UI Layout (Tkinter)
 
 **Window:** `1300x700`, split into `left_frame` (fixed width, packed `LEFT`) and `right_frame` (expands to fill, packed `RIGHT`).
 
@@ -110,7 +119,7 @@ If no graph has been drawn yet, `highlight_graph()` shows an info dialog telling
 
 ---
 
-## 6. Program Entry Point
+## 7. Program Entry Point
 
 ```python
 def main():
@@ -122,7 +131,7 @@ So the app boots with the default `{1,2,3,4}` / `{{1,2},{2,3},{3,4},{4,1},{1,3}}
 
 ---
 
-## 7. Typical Usage Flow
+## 8. Typical Usage Flow
 
 1. User edits the **Vertices** and **Edges** boxes, clicks **Enter** → `draw_graph()` parses input, rebuilds the graph, computes a fresh layout, and renders it in blue/black.
 2. User selects a highlight mode (Vertices or Path), fills in the corresponding box, clicks **Highlight** → `highlight_graph()` re-renders the *same* graph/layout with the requested nodes/edges in red, without disturbing node positions.
@@ -130,7 +139,7 @@ So the app boots with the default `{1,2,3,4}` / `{{1,2},{2,3},{3,4},{4,1},{1,3}}
 
 ---
 
-## 8. Notable Design Choices
+## 9. Notable Design Choices
 
 - **Edges as `frozenset`:** makes `{1,2}` and `{2,1}` the same object, which naturally deduplicates and simplifies membership checks (`frozenset({u,v}) in highlight_edges`).
 - **Layout caching (`current_pos`):** `spring_layout` is a force-directed algorithm with some randomness — recomputing it on every highlight would make nodes jump around. Caching it keeps the visualization stable while highlighting.
