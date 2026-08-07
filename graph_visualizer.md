@@ -19,9 +19,6 @@ The core idea: parse user text → build a graph → lay it out once → redraw 
 
 <img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/dc727291-e507-44c9-924c-a76b00cc5939" />
 
-
-*Replace `screenshot.png` above with an actual capture of the app — e.g. the default graph `{1,2,3,4}` / `{{1,2},{2,3},{3,4},{4,1},{1,3}}` with a highlighted path — placed in the same folder as this file.*
-
 ---
 
 ## 3. Data Model — `Graph` class
