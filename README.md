@@ -3,7 +3,7 @@ Interactive graph visualization tool built using Python, NetworkX, Tkinter, and 
 
 # Interactive Graph Theory Visualizer
 
-<img width="783" height="750" alt="ReadMe" src="https://github.com/user-attachments/assets/5d2ef1fa-45f4-4704-9eed-557229ba3eca" />
+<img width="1306" height="628" alt="image" src="https://github.com/user-attachments/assets/90cf0e37-8a79-4bb2-aa09-ed5ae08c0340" />
 
 Website for this project: https://001-long-fingers.github.io/Graph-Theory-Visualizer-Project/
 
